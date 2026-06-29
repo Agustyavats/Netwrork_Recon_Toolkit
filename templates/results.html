@@ -1,0 +1,220 @@
+{% extends "base.html" %}
+
+{% block title %}Results — {{ results.target if results.target else 'Scan' }}{% endblock %}
+
+{% block content %}
+{% if not results.success %}
+<section class="results-header error-header">
+    <h1>Scan Failed</h1>
+    <p class="error-text">{{ results.error }}</p>
+    <a href="{{ url_for('index') }}" class="btn btn-secondary">Try Again</a>
+</section>
+{% else %}
+
+<section class="results-header">
+    <div class="results-meta">
+        <h1>{{ results.target }}</h1>
+        <span class="badge badge-{{ results.target_type }}">{{ results.target_type | upper }}</span>
+    </div>
+    {% if results.scanned_at %}
+    <p class="scan-time">Scanned at {{ results.scanned_at }}</p>
+    {% endif %}
+    <a href="{{ url_for('index') }}" class="btn btn-secondary btn-sm">New Scan</a>
+</section>
+
+<!-- Security Summary -->
+<section class="result-section summary-section">
+    <h2>Security Summary</h2>
+    <p class="disclaimer">Observational summary only — not a vulnerability assessment.</p>
+    <div class="summary-grid">
+        <div class="summary-item">
+            <span class="summary-label">Open Ports</span>
+            <span class="summary-value">
+                {% if results.summary.open_ports %}
+                    {{ results.summary.open_ports | join(', ') }}
+                {% else %}
+                    None detected
+                {% endif %}
+            </span>
+        </div>
+        <div class="summary-item">
+            <span class="summary-label">SSL</span>
+            <span class="summary-value {% if results.summary.ssl_status == 'Valid' %}status-ok{% elif results.summary.ssl_status == 'Expired' %}status-warn{% endif %}">
+                {{ results.summary.ssl_status }}
+            </span>
+        </div>
+        <div class="summary-item">
+            <span class="summary-label">DNS</span>
+            <span class="summary-value">{{ results.summary.dns_status }}</span>
+        </div>
+        <div class="summary-item">
+            <span class="summary-label">Overall</span>
+            <span class="summary-value">{{ results.summary.overall }}</span>
+        </div>
+    </div>
+    {% if results.summary.missing_headers %}
+    <p class="missing-headers">Missing headers: {{ results.summary.missing_headers | join(', ') }}</p>
+    {% endif %}
+</section>
+
+<!-- DNS Lookup -->
+<section class="result-section">
+    <h2>DNS Lookup</h2>
+    {% if results.dns.errors %}
+        {% for err in results.dns.errors %}
+        <p class="info-text">{{ err }}</p>
+        {% endfor %}
+    {% endif %}
+    {% if results.dns.records %}
+    <div class="record-grid">
+        {% for rtype, entries in results.dns.records.items() %}
+        <div class="record-block">
+            <h3>{{ rtype }}</h3>
+            {% if entries %}
+            <ul>
+                {% for entry in entries %}
+                <li>{{ entry }}</li>
+                {% endfor %}
+            </ul>
+            {% else %}
+            <p class="empty">No records</p>
+            {% endif %}
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+</section>
+
+<!-- WHOIS -->
+<section class="result-section">
+    <h2>WHOIS Lookup</h2>
+    {% if results.whois.success %}
+    <table class="data-table">
+        <tr><td>Registrar</td><td>{{ results.whois.registrar }}</td></tr>
+        <tr><td>Creation Date</td><td>{{ results.whois.creation_date or 'N/A' }}</td></tr>
+        <tr><td>Expiration Date</td><td>{{ results.whois.expiration_date or 'N/A' }}</td></tr>
+        <tr><td>Updated Date</td><td>{{ results.whois.updated_date or 'N/A' }}</td></tr>
+        <tr><td>Organization</td><td>{{ results.whois.organization }}</td></tr>
+        <tr><td>Country</td><td>{{ results.whois.country }}</td></tr>
+    </table>
+    {% else %}
+    <p class="info-text">{{ results.whois.error }}</p>
+    {% endif %}
+</section>
+
+<!-- SSL Certificate -->
+<section class="result-section">
+    <h2>SSL Certificate</h2>
+    {% if results.ssl.success and results.ssl.available %}
+        {% if results.ssl.warning %}
+        <div class="alert alert-warn">{{ results.ssl.warning }}</div>
+        {% endif %}
+    <table class="data-table">
+        <tr><td>Issuer</td><td>{{ results.ssl.issuer }}</td></tr>
+        <tr><td>Subject</td><td>{{ results.ssl.subject }}</td></tr>
+        <tr><td>Valid From</td><td>{{ results.ssl.valid_from }}</td></tr>
+        <tr><td>Valid Until</td><td>{{ results.ssl.valid_until }}</td></tr>
+        <tr><td>Days Remaining</td><td>{{ results.ssl.days_remaining }}</td></tr>
+    </table>
+    {% else %}
+    <p class="info-text">{{ results.ssl.error or 'SSL information not available.' }}</p>
+    {% endif %}
+</section>
+
+<!-- Port Scanner -->
+<section class="result-section">
+    <h2>Port Scanner</h2>
+    {% if results.port_scan.error %}
+    <p class="info-text">{{ results.port_scan.error }}</p>
+    {% endif %}
+    <p class="method-tag">Method: {{ results.port_scan.method }}</p>
+    <table class="data-table port-table">
+        <thead>
+            <tr>
+                <th>Port</th>
+                <th>State</th>
+                <th>Service</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for port in results.port_scan.ports %}
+            <tr class="state-{{ port.state }}">
+                <td>{{ port.port }}</td>
+                <td><span class="state-badge state-{{ port.state }}">{{ port.state }}</span></td>
+                <td>{{ port.service }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</section>
+
+<!-- Reverse DNS -->
+<section class="result-section">
+    <h2>Reverse DNS</h2>
+    {% if results.reverse_dns.success %}
+    <p class="result-value">{{ results.reverse_dns.hostname }}</p>
+    {% else %}
+    <p class="info-text">{{ results.reverse_dns.error }}</p>
+    {% endif %}
+</section>
+
+<!-- IP Information -->
+<section class="result-section">
+    <h2>IP Information</h2>
+    {% if results.ip_info.success %}
+    <table class="data-table">
+        <tr><td>Resolved IP</td><td>{{ results.ip_info.resolved_ip }}</td></tr>
+        <tr><td>Reverse DNS</td><td>{{ results.ip_info.reverse_dns }}</td></tr>
+        <tr><td>Classification</td><td>{{ results.ip_info.classification }}</td></tr>
+        <tr><td>IP Version</td><td>{{ results.ip_info.ip_version }}</td></tr>
+    </table>
+    {% else %}
+    <p class="info-text">{{ results.ip_info.error }}</p>
+    {% endif %}
+</section>
+
+<!-- Subdomains -->
+<section class="result-section">
+    <h2>Subdomain Enumeration</h2>
+    {% if results.subdomains.subdomains %}
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>Subdomain</th>
+                <th>IP Address(es)</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for sub in results.subdomains.subdomains %}
+            <tr>
+                <td>{{ sub.subdomain }}</td>
+                <td>{{ sub.ips | join(', ') }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p class="info-text">{{ results.subdomains.error or 'No subdomains found.' }}</p>
+    {% endif %}
+</section>
+
+<!-- HTTP Headers -->
+<section class="result-section">
+    <h2>HTTP Headers</h2>
+    {% if results.http_headers.success %}
+    <p class="method-tag">URL: {{ results.http_headers.url }}</p>
+    <table class="data-table">
+        {% for header, value in results.http_headers.headers.items() %}
+        <tr>
+            <td>{{ header }}</td>
+            <td class="{% if value == 'Not set' %}not-set{% endif %}">{{ value }}</td>
+        </tr>
+        {% endfor %}
+    </table>
+    {% else %}
+    <p class="info-text">{{ results.http_headers.error }}</p>
+    {% endif %}
+</section>
+
+{% endif %}
+{% endblock %}

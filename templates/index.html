@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+
+{% block title %}Home — Network Recon Toolkit{% endblock %}
+
+{% block content %}
+<section class="hero">
+    <h1>Network Recon Toolkit</h1>
+    <p class="subtitle">
+        Automate basic network reconnaissance against a host or domain.
+        Built for learning and authorized security testing.
+    </p>
+</section>
+
+<section class="scan-form-section">
+    <form action="{{ url_for('scan') }}" method="POST" class="scan-form" id="scanForm">
+        <div class="form-group">
+            <label for="target">Target (Domain or IP Address)</label>
+            <input
+                type="text"
+                id="target"
+                name="target"
+                placeholder="e.g. example.com or 8.8.8.8"
+                required
+                autocomplete="off"
+            >
+        </div>
+        {% if error %}
+        <div class="alert alert-error">{{ error }}</div>
+        {% endif %}
+        <button type="submit" class="btn btn-primary" id="scanBtn">
+            Start Scan
+        </button>
+    </form>
+
+    <div class="info-cards">
+        <div class="info-card">
+            <h3>DNS Lookup</h3>
+            <p>A, AAAA, MX, NS, TXT, and CNAME records</p>
+        </div>
+        <div class="info-card">
+            <h3>Port Scan</h3>
+            <p>Common ports with Nmap or socket fallback</p>
+        </div>
+        <div class="info-card">
+            <h3>SSL &amp; Headers</h3>
+            <p>Certificate details and HTTP security headers</p>
+        </div>
+        <div class="info-card">
+            <h3>Subdomains</h3>
+            <p>Basic enumeration with a built-in wordlist</p>
+        </div>
+    </div>
+</section>
+{% endblock %}
