@@ -35,17 +35,6 @@ This project is **not** a vulnerability scanner or penetration testing framework
 
 ---
 
-## Screenshots
-
-> Add screenshots of the home page, scan results, and history page here after running the application locally.
-
-```
-Home Page          →  templates/index.html
-Scan Results       →  templates/results.html
-Scan History       →  templates/history.html
-```
-
----
 
 ## Installation
 
